@@ -1,0 +1,64 @@
+---
+title: "Untitled"
+output: html_document
+date: '2023-03-14'
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r}
+load('./processed.RData')
+install.packages('dplyr')
+install.packages('tidyr')
+install.packages('ff')
+install.packages('data.table')
+install.packages('biglm')
+
+library(dplyr)
+library(tidyr)
+library(ff)
+library(data.table)
+library(ggplot2)
+library(biglm)
+library(R.utils)
+```
+
+```{r}
+result900 <- c()
+
+time_repe = system.time(for (i in 900:1000) {
+  
+  set.seed(i)
+  
+  # Take the samples.
+  DT_subset_i<- sample_n(DT1, 1000000)
+  
+  # Select the columns.
+  DT_subset_i<- DT_subset_i %>%
+                 select(c(ADJINC, BDSP, VEH, FINCP))
+  
+  # Turn into numeric form.
+  DT_subset_i$ADJINC <- as.numeric(DT_subset_i$ADJINC)
+  DT_subset_i$BDSP <- as.numeric(DT_subset_i$BDSP)
+  DT_subset_i$VEH <- as.numeric(DT_subset_i$VEH)
+  DT_subset_i$FINCP <- as.numeric(DT_subset_i$FINCP)
+  
+  # Replace NA.
+  #DT_subset_i$FINCP[is.na(DT_subset_i$FINCP)] <- median(DT_subset_i$FINCP, na.rm=TRUE)
+  #DT_subset_i$BDSP[is.na(DT_subset_i$BDSP)] <- median(DT_subset_i$BDSP, na.rm=TRUE)
+  #DT_subset_i$VEH[is.na(DT_subset_i$VEH)] <- median(DT_subset_i$VEH, na.rm=TRUE)
+
+  # Adjust FINCP to constant dollars.
+  DT_subset_i$FINADJ <- DT_subset_i$FINCP*((1e-6)*DT_subset_i$ADJINC)
+  
+  # Fit model.
+  model_lm_i <- lm(FINADJ ~ BDSP + VEH, data = DT_subset_i)
+  
+  # Record results.
+  result900[i] <- model_lm_i$coefficients[2]
+})
+save(result900, file='result900.RData')
+```
+
